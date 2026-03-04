@@ -503,6 +503,7 @@ export const en = {
             applyChanges: 'Update file',
             viewDiff: 'Current file changes',
             question: 'Question',
+            subagent: 'Subagent',
         },
         askUserQuestion: {
             submit: 'Submit Answer',

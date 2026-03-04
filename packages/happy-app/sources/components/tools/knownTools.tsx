@@ -45,6 +45,26 @@ export const knownTools = {
             subagent_type: z.string().optional().describe('The type of specialized agent to use')
         }).partial().passthrough()
     },
+    'Agent': {
+        title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const type = opts.tool.input?.subagent_type;
+            if (typeof type === 'string' && type.trim()) {
+                return `${t('tools.names.subagent')} ${type}`;
+            }
+            return t('tools.names.subagent');
+        },
+        icon: ICON_TASK,
+        minimal: true,
+        extractSubtitle: (opts: { tool: ToolCall }) => {
+            const desc = opts.tool.input?.description;
+            return typeof desc === 'string' && desc.trim() ? desc : undefined;
+        },
+        input: z.object({
+            description: z.string().optional(),
+            prompt: z.string().optional(),
+            subagent_type: z.string().optional(),
+        }).partial().passthrough()
+    },
     'Bash': {
         title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
             if (opts.tool.description) {
