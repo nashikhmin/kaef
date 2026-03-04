@@ -3,6 +3,7 @@ import { View, Text, ViewStyle } from 'react-native';
 import { calculateUnifiedDiff, DiffToken } from '@/components/diff/calculateDiff';
 import { Typography } from '@/constants/Typography';
 import { useUnistyles } from 'react-native-unistyles';
+import { insertSoftWrapBreaks } from '@/components/diff/softWrap';
 
 
 interface DiffViewProps {
@@ -54,22 +55,29 @@ export const DiffView: React.FC<DiffViewProps> = ({
         return content.trimEnd();
     };
 
+    // Insert optional break points for long uninterrupted tokens in wrap mode
+    const withSoftWrap = (value: string) => {
+        return wrapLines ? insertSoftWrapBreaks(value) : value;
+    };
+
     // Helper function to render line content with styled leading space dots and inline highlighting
     const renderLineContent = (content: string, baseColor: string, tokens?: DiffToken[]) => {
-        const formatted = formatLineContent(content);
+        const formatted = withSoftWrap(formatLineContent(content));
 
         if (tokens && tokens.length > 0) {
             // Render with inline highlighting
             let processedLeadingSpaces = false;
 
             return tokens.map((token, idx) => {
+                const tokenValue = withSoftWrap(token.value);
+
                 // Process leading spaces in the first token only
-                if (!processedLeadingSpaces && token.value) {
-                    const leadingMatch = token.value.match(/^( +)/);
+                if (!processedLeadingSpaces && tokenValue) {
+                    const leadingMatch = tokenValue.match(/^( +)/);
                     if (leadingMatch) {
                         processedLeadingSpaces = true;
                         const leadingDots = '\u00b7'.repeat(leadingMatch[0].length);
-                        const restOfToken = token.value.slice(leadingMatch[0].length);
+                        const restOfToken = tokenValue.slice(leadingMatch[0].length);
 
                         if (token.added || token.removed) {
                             return (
@@ -103,11 +111,11 @@ export const DiffView: React.FC<DiffViewProps> = ({
                                 color: token.added ? colors.inlineAddedText : colors.inlineRemovedText,
                             }}
                         >
-                            {token.value}
+                            {tokenValue}
                         </Text>
                     );
                 }
-                return <Text key={idx} style={{ color: baseColor }}>{token.value}</Text>;
+                return <Text key={idx} style={{ color: baseColor }}>{tokenValue}</Text>;
             });
         }
 
@@ -169,6 +177,7 @@ export const DiffView: React.FC<DiffViewProps> = ({
                             transform: [{ scaleX: fontScaleX }],
                             paddingLeft: 8,
                             paddingRight: 8,
+                            ...(wrapLines ? { maxWidth: '100%', flexShrink: 1 } : null),
                         }}
                     >
                         {showLineNumbers && (
@@ -239,4 +248,3 @@ export const DiffView: React.FC<DiffViewProps> = ({
     //     </View>
     // );
 };
-

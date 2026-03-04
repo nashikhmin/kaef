@@ -30,13 +30,6 @@ export interface DiffResult {
     };
 }
 
-interface LinePair {
-    oldLine?: string;
-    newLine?: string;
-    oldIndex?: number;
-    newIndex?: number;
-}
-
 /**
  * Calculate unified diff with inline highlighting
  * Similar to git diff algorithm
@@ -51,7 +44,6 @@ export function calculateUnifiedDiff(
     
     // Convert to our internal format and track line numbers
     const allLines: DiffLine[] = [];
-    const linePairs: LinePair[] = [];
     let oldLineNum = 1;
     let newLineNum = 1;
     let additions = 0;
@@ -141,11 +133,53 @@ export function calculateUnifiedDiff(
 function calculateInlineDiff(oldLine: string, newLine: string): DiffToken[] {
     // Use word-level diff for better readability
     const wordDiff = diffWordsWithSpace(oldLine, newLine);
-    
-    return wordDiff.map(part => ({
+
+    // Refine adjacent remove/add pairs to character-level diff.
+    // This highlights changed parts inside a word (IDE-like inline diff).
+    const refinedTokens: DiffToken[] = [];
+
+    for (let index = 0; index < wordDiff.length; index++) {
+        const part = wordDiff[index];
+        const next = wordDiff[index + 1];
+
+        if (part.removed && next?.added && shouldRefineSubwordDiff(part.value, next.value)) {
+            refinedTokens.push(...refineWithCharDiff(part.value, next.value));
+            index += 1;
+            continue;
+        }
+
+        if (part.added && next?.removed && shouldRefineSubwordDiff(next.value, part.value)) {
+            refinedTokens.push(...refineWithCharDiff(next.value, part.value));
+            index += 1;
+            continue;
+        }
+
+        refinedTokens.push({
+            value: part.value,
+            added: part.added,
+            removed: part.removed
+        });
+    }
+
+    return refinedTokens;
+}
+
+function shouldRefineSubwordDiff(removedValue: string, addedValue: string): boolean {
+    if (!removedValue || !addedValue) {
+        return false;
+    }
+
+    // Refinement is most useful for token-like values.
+    return !(removedValue.trim().length === 0 || addedValue.trim().length === 0);
+
+
+}
+
+function refineWithCharDiff(removedValue: string, addedValue: string): DiffToken[] {
+    return diffChars(removedValue, addedValue).map((part) => ({
         value: part.value,
         added: part.added,
-        removed: part.removed
+        removed: part.removed,
     }));
 }
 
