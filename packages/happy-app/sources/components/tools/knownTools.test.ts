@@ -11,6 +11,13 @@ vi.mock('@/utils/pathUtils', () => ({
 vi.mock('@/sync/storageTypes', () => ({}));
 vi.mock('@/sync/typesMessage', () => ({}));
 
+const mockSettings = { collapseDiffs: false };
+vi.mock('@/sync/storage', () => ({
+    storage: {
+        getState: () => ({ settings: mockSettings }),
+    },
+}));
+
 // Mock react and expo icons to avoid JSX runtime issues
 vi.mock('react', () => ({ default: { createElement: () => null }, createElement: () => null }));
 vi.mock('@expo/vector-icons', () => ({
@@ -62,5 +69,33 @@ describe('knownTools.Agent', () => {
 
     it('is always minimal', () => {
         expect(agent.minimal).toBe(true);
+    });
+});
+
+describe('knownTools.Edit collapseDiffs', () => {
+    const edit = knownTools['Edit'] as any;
+
+    it('is not minimal when collapseDiffs is false', () => {
+        mockSettings.collapseDiffs = false;
+        expect(edit.minimal()).toBe(false);
+    });
+
+    it('is minimal when collapseDiffs is true', () => {
+        mockSettings.collapseDiffs = true;
+        expect(edit.minimal()).toBe(true);
+    });
+});
+
+describe('knownTools.Write collapseDiffs', () => {
+    const write = knownTools['Write'] as any;
+
+    it('is not minimal when collapseDiffs is false', () => {
+        mockSettings.collapseDiffs = false;
+        expect(write.minimal()).toBe(false);
+    });
+
+    it('is minimal when collapseDiffs is true', () => {
+        mockSettings.collapseDiffs = true;
+        expect(write.minimal()).toBe(true);
     });
 });

@@ -186,6 +186,8 @@ export const en: TranslationStructure = {
         showLineNumbersInToolViewsDescription: 'Display line numbers in tool view diffs',
         wrapLinesInDiffs: 'Wrap Lines in Diffs',
         wrapLinesInDiffsDescription: 'Wrap long lines instead of horizontal scrolling in diff views',
+        collapseDiffs: 'Collapse File Diffs',
+        collapseDiffsDescription: 'Show only file names for edit/write tools, hiding diff content',
         alwaysShowContextSize: 'Always Show Context Size',
         alwaysShowContextSizeDescription: 'Display context usage even when not near limit',
         avatarStyle: 'Avatar Style',

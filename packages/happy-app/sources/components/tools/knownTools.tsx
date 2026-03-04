@@ -1,6 +1,7 @@
 import { Metadata } from '@/sync/storageTypes';
 import { ToolCall, Message } from '@/sync/typesMessage';
 import { resolvePath } from '@/utils/pathUtils';
+import { storage } from '@/sync/storage';
 import * as z from 'zod';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import React from 'react';
@@ -259,6 +260,7 @@ export const knownTools = {
         },
         icon: ICON_EDIT,
         isMutable: true,
+        minimal: () => storage.getState().settings.collapseDiffs,
         input: z.object({
             file_path: z.string().describe('The absolute path to the file to modify'),
             old_string: z.string().describe('The text to replace'),
@@ -280,6 +282,7 @@ export const knownTools = {
         },
         icon: ICON_EDIT,
         isMutable: true,
+        minimal: () => storage.getState().settings.collapseDiffs,
         input: z.object({
             file_path: z.string().describe('The absolute path to the file to modify'),
             edits: z.array(z.object({
@@ -310,6 +313,7 @@ export const knownTools = {
         },
         icon: ICON_EDIT,
         isMutable: true,
+        minimal: () => storage.getState().settings.collapseDiffs,
         input: z.object({
             file_path: z.string().describe('The absolute path to the file to write'),
             content: z.string().describe('The content to write to the file')
