@@ -11,7 +11,7 @@ function getChangedLines(oldText: string, newText: string) {
 }
 
 describe('calculateUnifiedDiff inline refinement', () => {
-    it('highlights changed parts inside a word', () => {
+    it('highlights changed words within a line', () => {
         const oldLine = "const color = 'term-green';";
         const newLine = "const color = 'term-emerald';";
         const { removed, added } = getChangedLines(oldLine, newLine);
@@ -28,12 +28,12 @@ describe('calculateUnifiedDiff inline refinement', () => {
         expect(removedTokens.some((token) => token.removed)).toBe(true);
         expect(addedTokens.some((token) => token.added)).toBe(true);
 
-        // Ensure we keep shared prefix as unchanged token and only mark changed suffix.
+        // Word-level diff keeps shared prefix as unchanged token.
         expect(removedTokens.some((token) => !token.removed && token.value.includes('term-'))).toBe(true);
         expect(addedTokens.some((token) => !token.added && token.value.includes('term-'))).toBe(true);
     });
 
-    it('does not force char-level refinement for whitespace-only changes', () => {
+    it('keeps whitespace changes as whole word tokens', () => {
         const oldLine = 'const value = 1;';
         const newLine = 'const  value = 1;';
         const { removed, added } = getChangedLines(oldLine, newLine);
@@ -44,8 +44,6 @@ describe('calculateUnifiedDiff inline refinement', () => {
         const removedTokens = removed?.tokens ?? [];
         const addedTokens = added?.tokens ?? [];
 
-        // Keep whitespace token as a whole token pair from word diff.
-        // Char-level refinement would split this to unchanged+added single space.
         expect(removedTokens.some((token) => token.removed && token.value === ' ')).toBe(true);
         expect(addedTokens.some((token) => token.added && token.value === '  ')).toBe(true);
     });
