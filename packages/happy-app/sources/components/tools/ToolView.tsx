@@ -29,6 +29,7 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
     const { tool, onPress, sessionId, messageId } = props;
     const router = useRouter();
     const { theme } = useUnistyles();
+    const isAskUserQuestion = tool.name === 'AskUserQuestion';
 
     // Create default onPress handler for navigation
     const handlePress = React.useCallback(() => {
@@ -260,7 +261,7 @@ export const ToolView = React.memo<ToolViewProps>((props) => {
 
             {/* Permission footer - always renders when permission exists to maintain consistent height */}
             {/* AskUserQuestion has its own Submit button UI - no permission footer needed */}
-            {tool.permission && sessionId && tool.name !== 'AskUserQuestion' && (
+            {tool.permission && sessionId && !isAskUserQuestion && (
                 <PermissionFooter permission={tool.permission} sessionId={sessionId} toolName={tool.name} toolInput={tool.input} metadata={props.metadata} />
             )}
         </View>

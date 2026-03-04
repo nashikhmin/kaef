@@ -50,7 +50,8 @@ export const toolViewRegistry: Record<string, ToolViewComponent> = {
 export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     Bash: BashViewFull,
     Edit: EditViewFull,
-    MultiEdit: MultiEditViewFull
+    MultiEdit: MultiEditViewFull,
+    AskUserQuestion: AskUserQuestionView,
 };
 
 // Helper function to get the appropriate view component for a tool

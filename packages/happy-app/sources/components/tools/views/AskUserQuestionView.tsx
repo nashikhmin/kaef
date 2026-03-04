@@ -7,22 +7,7 @@ import { sessionAllow } from '@/sync/ops';
 import { sync } from '@/sync/sync';
 import { t } from '@/text';
 import { Ionicons } from '@expo/vector-icons';
-
-interface QuestionOption {
-    label: string;
-    description: string;
-}
-
-interface Question {
-    question: string;
-    header: string;
-    options: QuestionOption[];
-    multiSelect: boolean;
-}
-
-interface AskUserQuestionInput {
-    questions: Question[];
-}
+import { normalizeAskUserQuestionInput } from './askUserQuestionInput';
 
 // Styles MUST be defined outside the component to prevent infinite re-renders
 // with react-native-unistyles. The theme is passed as a function parameter.
@@ -171,11 +156,8 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isSubmitted, setIsSubmitted] = React.useState(false);
 
-    // Parse input
-    const input = tool.input as AskUserQuestionInput | undefined;
-    const questions = input?.questions;
-
-    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+    const questions = React.useMemo(() => normalizeAskUserQuestionInput(tool.input), [tool.input]);
+    if (questions.length === 0) {
         return null;
     }
 
@@ -216,6 +198,25 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
     const handleSubmit = React.useCallback(async () => {
         if (!sessionId || !allQuestionsAnswered || isSubmitting) return;
 
+        const responseLines: string[] = [];
+        questions.forEach((q, qIndex) => {
+            const selected = selections.get(qIndex);
+            if (selected && selected.size > 0) {
+                const selectedLabels = Array.from(selected)
+                    .map(optIndex => q.options[optIndex]?.label)
+                    .filter((label): label is string => typeof label === 'string' && label.length > 0)
+                    .join(', ');
+                if (selectedLabels.length > 0) {
+                    responseLines.push(`${q.header}: ${selectedLabels}`);
+                }
+            }
+        });
+
+        const responseText = responseLines.join('\n');
+        if (!responseText) {
+            return;
+        }
+
         setIsSubmitting(true);
 
         // HACK: Disable the form immediately by switching to the submitted view.
@@ -223,21 +224,6 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
         // are in flight, but those edits would be ignored since we've already
         // captured the values above. TODO: Revisit this logic.
         setIsSubmitted(true);
-
-        // Format answers as readable text
-        const responseLines: string[] = [];
-        questions.forEach((q, qIndex) => {
-            const selected = selections.get(qIndex);
-            if (selected && selected.size > 0) {
-                const selectedLabels = Array.from(selected)
-                    .map(optIndex => q.options[optIndex]?.label)
-                    .filter(Boolean)
-                    .join(', ');
-                responseLines.push(`${q.header}: ${selectedLabels}`);
-            }
-        });
-
-        const responseText = responseLines.join('\n');
 
         try {
             // 1. Approve the permission (like PermissionFooter.handleApprove does)
