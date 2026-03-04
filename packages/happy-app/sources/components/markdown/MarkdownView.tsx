@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { MermaidRenderer } from './MermaidRenderer';
 import { t } from '@/text';
+import { hapticsLight } from '../haptics';
 
 // Option type for callback
 export type Option = {
@@ -37,6 +38,7 @@ export const MarkdownView = React.memo((props: {
 
     const handleLongPress = React.useCallback(() => {
         try {
+            hapticsLight();
             const textId = storeTempText(props.markdown);
             router.push(`/text-selection?textId=${textId}`);
         } catch (error) {
@@ -85,7 +87,8 @@ export const MarkdownView = React.memo((props: {
     // Use GestureDetector with LongPress gesture - it doesn't block pan gestures
     // so horizontal scrolling in code blocks and tables still works
     const longPressGesture = Gesture.LongPress()
-        .minDuration(500)
+        .minDuration(300)
+        .maxDistance(30)
         .onStart(() => {
             handleLongPress();
         })

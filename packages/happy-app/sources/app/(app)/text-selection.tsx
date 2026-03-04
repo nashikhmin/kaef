@@ -96,15 +96,16 @@ export default function TextSelectionScreen() {
                 ]}
             >
                 <TextInput
-                    style={[styles.textInput, { 
+                    style={[styles.textInput, {
                         color: theme.colors.text,
                         backgroundColor: 'transparent'
                     }]}
                     value={fullText}
                     multiline={true}
-                    editable={false}
-                    selectTextOnFocus={false}
+                    editable={true}
+                    showSoftInputOnFocus={false}
                     scrollEnabled={false}
+                    contextMenuHidden={false}
                 />
             </ScrollView>
         </View>
