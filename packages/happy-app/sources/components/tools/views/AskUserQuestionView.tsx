@@ -133,23 +133,6 @@ const styles = StyleSheet.create((theme) => ({
         fontSize: 14,
         fontWeight: '600',
     },
-    submittedContainer: {
-        gap: 8,
-    },
-    submittedItem: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    submittedHeader: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: theme.colors.textSecondary,
-    },
-    submittedValue: {
-        fontSize: 13,
-        color: theme.colors.text,
-        flex: 1,
-    },
     otherInput: {
         fontSize: 14,
         color: theme.colors.text,
@@ -267,36 +250,6 @@ export const AskUserQuestionView = React.memo<ToolViewProps>(({ tool, sessionId 
             setIsSubmitting(false);
         }
     }, [sessionId, questions, selections, otherTexts, allQuestionsAnswered, isSubmitting, tool.permission?.id]);
-
-    // Show submitted state
-    if (isSubmitted || tool.state === 'completed') {
-        return (
-            <ToolSectionView>
-                <View style={styles.submittedContainer}>
-                    {questions.map((q, qIndex) => {
-                        const selected = selections.get(qIndex);
-                        const selectedLabels = selected
-                            ? Array.from(selected)
-                                .map(optIndex => {
-                                    if (optIndex === OTHER_OPTION_INDEX) {
-                                        return otherTexts.get(qIndex)?.trim() || t('tools.askUserQuestion.other');
-                                    }
-                                    return q.options[optIndex]?.label;
-                                })
-                                .filter(Boolean)
-                                .join(', ')
-                            : '-';
-                        return (
-                            <View key={qIndex} style={styles.submittedItem}>
-                                <Text style={styles.submittedHeader}>{q.header}:</Text>
-                                <Text style={styles.submittedValue}>{selectedLabels}</Text>
-                            </View>
-                        );
-                    })}
-                </View>
-            </ToolSectionView>
-        );
-    }
 
     return (
         <ToolSectionView>
