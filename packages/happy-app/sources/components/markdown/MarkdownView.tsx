@@ -1,4 +1,4 @@
-import { MarkdownSpan, parseMarkdown } from './parseMarkdown';
+import { MarkdownBlock, MarkdownSpan, parseMarkdown } from './parseMarkdown';
 import { Link } from 'expo-router';
 import * as React from 'react';
 import { Pressable, ScrollView, View, Platform } from 'react-native';
@@ -21,19 +21,19 @@ export type Option = {
     title: string;
 };
 
-export const MarkdownView = React.memo((props: { 
+// Check if a block can be rendered as nested <Text> (no View needed)
+function isInlineableBlock(block: MarkdownBlock): boolean {
+    return block.type !== 'mermaid' && block.type !== 'options';
+}
+
+export const MarkdownView = React.memo((props: {
     markdown: string;
     onOptionPress?: (option: Option) => void;
 }) => {
     const blocks = React.useMemo(() => parseMarkdown(props.markdown), [props.markdown]);
-    
-    // Backwards compatibility: The original version just returned the view, wrapping the list of blocks.
-    // It made each of the individual text elements selectable. When we enable the markdownCopyV2 feature,
-    // we disable the selectable property on individual text segments on mobile only. Instead, the long press
-    // will be handled by a wrapper Pressable. If we don't disable the selectable property, then you will see
-    // the native copy modal come up at the same time as the long press handler is fired.
+
     const markdownCopyV2 = useLocalSetting('markdownCopyV2');
-    const selectable = Platform.OS === 'web' || !markdownCopyV2;
+    const useInlineMode = !markdownCopyV2;
     const router = useRouter();
 
     const handleLongPress = React.useCallback(() => {
@@ -46,29 +46,43 @@ export const MarkdownView = React.memo((props: {
             Modal.alert('Error', 'Failed to open text selection. Please try again.');
         }
     }, [props.markdown, router]);
-    const renderContent = () => {
+
+    // Group consecutive inlineable blocks into a single <Text selectable>
+    // so selection flows across block boundaries
+    if (useInlineMode) {
+        const tempGroups: ({ type: 'inline', blocks: MarkdownBlock[] } | { type: 'view', block: MarkdownBlock })[] = [];
+
+        for (const block of blocks) {
+            if (isInlineableBlock(block)) {
+                const lastGroup = tempGroups[tempGroups.length - 1];
+                if (lastGroup && lastGroup.type === 'inline') {
+                    lastGroup.blocks.push(block);
+                } else {
+                    tempGroups.push({ type: 'inline', blocks: [block] });
+                }
+            } else {
+                tempGroups.push({ type: 'view', block });
+            }
+        }
+
         return (
             <View style={{ width: '100%' }}>
-                {blocks.map((block, index) => {
-                    if (block.type === 'text') {
-                        return <RenderTextBlock spans={block.content} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
-                    } else if (block.type === 'header') {
-                        return <RenderHeaderBlock level={block.level} spans={block.content} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
-                    } else if (block.type === 'horizontal-rule') {
-                        return <View style={style.horizontalRule} key={index} />;
-                    } else if (block.type === 'list') {
-                        return <RenderListBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
-                    } else if (block.type === 'numbered-list') {
-                        return <RenderNumberedListBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
-                    } else if (block.type === 'code-block') {
-                        return <RenderCodeBlock content={block.content} language={block.language} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} />;
-                    } else if (block.type === 'mermaid') {
-                        return <MermaidRenderer content={block.content} key={index} />;
-                    } else if (block.type === 'options') {
-                        return <RenderOptionsBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={selectable} onOptionPress={props.onOptionPress} />;
-                    } else if (block.type === 'table') {
-                        return <RenderTableBlock headers={block.headers} rows={block.rows} key={index} first={index === 0} last={index === blocks.length - 1} />;
+                {tempGroups.map((group, groupIndex) => {
+                    if (group.type === 'inline') {
+                        return (
+                            <Text selectable key={groupIndex} style={style.inlineGroup}>
+                                {group.blocks.map((block, blockIndex) =>
+                                    renderBlockInline(block, blockIndex, blockIndex > 0)
+                                )}
+                            </Text>
+                        );
                     } else {
+                        const block = group.block;
+                        if (block.type === 'mermaid') {
+                            return <MermaidRenderer content={block.content} key={groupIndex} />;
+                        } else if (block.type === 'options') {
+                            return <RenderOptionsBlock items={block.items} key={groupIndex} first={false} last={false} selectable={true} onOptionPress={props.onOptionPress} />;
+                        }
                         return null;
                     }
                 })}
@@ -76,16 +90,7 @@ export const MarkdownView = React.memo((props: {
         );
     }
 
-    if (!markdownCopyV2) {
-        return renderContent();
-    }
-    
-    if (Platform.OS === 'web') {
-        return renderContent();
-    }
-    
-    // Use GestureDetector with LongPress gesture - it doesn't block pan gestures
-    // so horizontal scrolling in code blocks and tables still works
+    // markdownCopyV2 mode: long press opens full-screen text selection
     const longPressGesture = Gesture.LongPress()
         .minDuration(300)
         .maxDistance(30)
@@ -97,11 +102,85 @@ export const MarkdownView = React.memo((props: {
     return (
         <GestureDetector gesture={longPressGesture}>
             <View style={{ width: '100%' }}>
-                {renderContent()}
+                <View style={{ width: '100%' }}>
+                    {blocks.map((block, index) => {
+                        if (block.type === 'text') {
+                            return <RenderTextBlock spans={block.content} key={index} first={index === 0} last={index === blocks.length - 1} selectable={false} />;
+                        } else if (block.type === 'header') {
+                            return <RenderHeaderBlock level={block.level} spans={block.content} key={index} first={index === 0} last={index === blocks.length - 1} selectable={false} />;
+                        } else if (block.type === 'horizontal-rule') {
+                            return <View style={style.horizontalRule} key={index} />;
+                        } else if (block.type === 'list') {
+                            return <RenderListBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={false} />;
+                        } else if (block.type === 'numbered-list') {
+                            return <RenderNumberedListBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={false} />;
+                        } else if (block.type === 'code-block') {
+                            return <RenderCodeBlock content={block.content} language={block.language} key={index} first={index === 0} last={index === blocks.length - 1} selectable={false} />;
+                        } else if (block.type === 'mermaid') {
+                            return <MermaidRenderer content={block.content} key={index} />;
+                        } else if (block.type === 'options') {
+                            return <RenderOptionsBlock items={block.items} key={index} first={index === 0} last={index === blocks.length - 1} selectable={false} onOptionPress={props.onOptionPress} />;
+                        } else if (block.type === 'table') {
+                            return <RenderTableBlock headers={block.headers} rows={block.rows} key={index} first={index === 0} last={index === blocks.length - 1} />;
+                        } else {
+                            return null;
+                        }
+                    })}
+                </View>
             </View>
         </GestureDetector>
     );
 });
+
+// Render a block as nested <Text> elements (for inline mode, no View wrappers)
+function renderBlockInline(block: MarkdownBlock, index: number, needsSeparator: boolean): React.ReactNode {
+    const sep = needsSeparator ? '\n' : null;
+    if (block.type === 'text') {
+        return <React.Fragment key={index}>{sep}<Text style={style.inlineText}><RenderSpans spans={block.content} baseStyle={style.inlineText} /></Text></React.Fragment>;
+    } else if (block.type === 'header') {
+        const s = (style as any)[`header${block.level}`];
+        const headerStyle = [style.header, s];
+        return <React.Fragment key={index}>{sep}{sep}<Text style={headerStyle}><RenderSpans spans={block.content} baseStyle={headerStyle} /></Text>{'\n'}</React.Fragment>;
+    } else if (block.type === 'list') {
+        return <React.Fragment key={index}>{sep}{block.items.map((item, i) =>
+            <Text key={i} style={style.inlineText}>{i > 0 ? '\n' : ''}{'- '}<RenderSpans spans={item} baseStyle={style.inlineText} /></Text>
+        )}{'\n'}</React.Fragment>;
+    } else if (block.type === 'numbered-list') {
+        return <React.Fragment key={index}>{sep}{block.items.map((item, i) =>
+            <Text key={i} style={style.inlineText}>{i > 0 ? '\n' : ''}{`${item.number}. `}<RenderSpans spans={item.spans} baseStyle={style.inlineText} /></Text>
+        )}{'\n'}</React.Fragment>;
+    } else if (block.type === 'code-block') {
+        return <React.Fragment key={index}>{sep}{'\n'}{block.language ? <Text style={style.inlineCodeLanguage}>{block.language}{'\n'}</Text> : null}<Text style={style.inlineCode}>{block.content}</Text>{'\n'}</React.Fragment>;
+    } else if (block.type === 'horizontal-rule') {
+        return <React.Fragment key={index}>{sep}<Text style={style.inlineHorizontalRule}>{'────────────────────────'}</Text>{'\n'}</React.Fragment>;
+    } else if (block.type === 'table') {
+        return <React.Fragment key={index}>{sep}{renderTableInline(block.headers, block.rows)}{'\n'}</React.Fragment>;
+    }
+    return null;
+}
+
+// Render a table as formatted text with monospace font
+function renderTableInline(headers: string[], rows: string[][]): React.ReactNode {
+    // Calculate column widths
+    const colWidths = headers.map((h, i) => {
+        let max = h.length;
+        for (const row of rows) {
+            const cell = row[i] ?? '';
+            if (cell.length > max) max = cell.length;
+        }
+        return max;
+    });
+
+    const pad = (s: string, width: number) => s + ' '.repeat(Math.max(0, width - s.length));
+    const headerLine = headers.map((h, i) => pad(h, colWidths[i])).join(' │ ');
+    const dividerLine = colWidths.map(w => '─'.repeat(w)).join('─┼─');
+    const dataLines = rows.map(row =>
+        row.map((cell, i) => pad(cell ?? '', colWidths[i])).join(' │ ')
+    );
+
+    const tableText = [headerLine, dividerLine, ...dataLines].join('\n');
+    return <Text style={style.inlineTableText}>{'\n'}{tableText}</Text>;
+}
 
 function RenderTextBlock(props: { spans: MarkdownSpan[], first: boolean, last: boolean, selectable: boolean }) {
     return <Text selectable={props.selectable} style={[style.text, props.first && style.first, props.last && style.last]}><RenderSpans spans={props.spans} baseStyle={style.text} /></Text>;
@@ -550,6 +629,48 @@ const style = StyleSheet.create((theme) => ({
         color: theme.colors.text,
         fontSize: 16,
         lineHeight: 24,
+    },
+
+    // Inline mode styles (single Text wrapper for cross-block selection)
+
+    inlineGroup: {
+        ...Typography.default(),
+        fontSize: 16,
+        lineHeight: 24,
+        color: theme.colors.text,
+        fontWeight: '400',
+    },
+    inlineText: {
+        ...Typography.default(),
+        fontSize: 16,
+        lineHeight: 24,
+        color: theme.colors.text,
+        fontWeight: '400',
+    },
+    inlineCode: {
+        ...Typography.mono(),
+        fontSize: 14,
+        lineHeight: 20,
+        backgroundColor: theme.colors.surfaceHighest,
+        color: theme.colors.text,
+    },
+    inlineCodeLanguage: {
+        ...Typography.mono(),
+        fontSize: 12,
+        lineHeight: 16,
+        color: theme.colors.textSecondary,
+    },
+    inlineHorizontalRule: {
+        ...Typography.default(),
+        fontSize: 16,
+        lineHeight: 24,
+        color: theme.colors.divider,
+    },
+    inlineTableText: {
+        ...Typography.mono(),
+        fontSize: 14,
+        lineHeight: 20,
+        color: theme.colors.text,
     },
 
     // Add global style for Web platform (Unistyles supports this via compiler plugin)

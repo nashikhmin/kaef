@@ -33,7 +33,7 @@ export const localSettingsDefaults: LocalSettings = {
     devModeEnabled: false,
     commandPaletteEnabled: false,
     themePreference: 'adaptive',
-    markdownCopyV2: true,
+    markdownCopyV2: false,
     acknowledgedCliVersions: {},
 };
 Object.freeze(localSettingsDefaults);
