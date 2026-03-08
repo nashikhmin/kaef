@@ -477,6 +477,9 @@ export const en = {
             running: 'Tool is running...',
             rawJsonDevMode: 'Raw JSON (Dev Mode)',
         },
+        agentView: {
+            prompt: 'Prompt',
+        },
         taskView: {
             initializing: 'Initializing agent...',
             moreTools: ({ count }: { count: number }) => `+${count} more ${plural({ count, singular: 'tool', plural: 'tools' })}`,

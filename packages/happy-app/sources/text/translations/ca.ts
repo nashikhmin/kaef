@@ -476,6 +476,9 @@ export const ca: TranslationStructure = {
             running: 'L\'eina s\'està executant...',
             rawJsonDevMode: 'JSON en brut (mode desenvolupador)',
         },
+        agentView: {
+            prompt: 'Prompt',
+        },
         taskView: {
             initializing: 'Inicialitzant l\'agent...',
             moreTools: ({ count }: { count: number }) => `+${count} més ${plural({ count, singular: 'eina', plural: 'eines' })}`,

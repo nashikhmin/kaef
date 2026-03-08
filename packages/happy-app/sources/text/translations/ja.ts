@@ -508,6 +508,9 @@ export const ja: TranslationStructure = {
             running: 'ツールを実行中...',
             rawJsonDevMode: 'Raw JSON (開発モード)',
         },
+        agentView: {
+            prompt: 'プロンプト',
+        },
         taskView: {
             initializing: 'エージェントを初期化中...',
             moreTools: ({ count }: { count: number }) => `+${count} 個のツール`,

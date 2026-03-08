@@ -505,6 +505,9 @@ export const it: TranslationStructure = {
             running: 'Strumento in esecuzione...',
             rawJsonDevMode: 'JSON grezzo (Modalità sviluppatore)',
         },
+        agentView: {
+            prompt: 'Prompt',
+        },
         taskView: {
             initializing: 'Inizializzazione agente...',
             moreTools: ({ count }: { count: number }) => `+${count} altri ${plural({ count, singular: 'strumento', plural: 'strumenti' })}`,

@@ -476,6 +476,9 @@ export const es: TranslationStructure = {
             running: 'La herramienta está ejecutándose...',
             rawJsonDevMode: 'JSON crudo (modo desarrollador)',
         },
+        agentView: {
+            prompt: 'Prompt',
+        },
         taskView: {
             initializing: 'Inicializando agente...',
             moreTools: ({ count }: { count: number }) => `+${count} más ${plural({ count, singular: 'herramienta', plural: 'herramientas' })}`,

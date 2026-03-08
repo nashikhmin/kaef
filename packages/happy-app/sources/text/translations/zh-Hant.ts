@@ -477,6 +477,9 @@ export const zhHant: TranslationStructure = {
             running: '工具正在執行...',
             rawJsonDevMode: '原始 JSON（開發模式）',
         },
+        agentView: {
+            prompt: '提示詞',
+        },
         taskView: {
             initializing: '正在初始化 agent...',
             moreTools: ({ count }: { count: number }) => `+${count} 個更多${plural({ count, singular: '工具', plural: '工具' })}`,

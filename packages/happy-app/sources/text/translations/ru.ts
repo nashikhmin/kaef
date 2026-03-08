@@ -488,6 +488,9 @@ export const ru: TranslationStructure = {
             running: 'Выполняется...',
             rawJsonDevMode: 'Исходный JSON (режим разработчика)',
         },
+        agentView: {
+            prompt: 'Промпт',
+        },
         taskView: {
             initializing: 'Инициализация агента...',
             moreTools: ({ count }: { count: number }) => `+${count} ещё ${plural({ count, one: 'инструмент', few: 'инструмента', many: 'инструментов' })}`,

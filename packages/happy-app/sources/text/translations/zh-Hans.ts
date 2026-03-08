@@ -478,6 +478,9 @@ export const zhHans: TranslationStructure = {
             running: '工具正在运行...',
             rawJsonDevMode: '原始 JSON（开发模式）',
         },
+        agentView: {
+            prompt: '提示词',
+        },
         taskView: {
             initializing: '正在初始化 agent...',
             moreTools: ({ count }: { count: number }) => `+${count} 个更多${plural({ count, singular: '工具', plural: '工具' })}`,

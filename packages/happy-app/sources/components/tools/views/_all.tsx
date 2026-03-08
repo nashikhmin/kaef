@@ -15,6 +15,7 @@ import { CodexBashView } from './CodexBashView';
 import { CodexPatchView } from './CodexPatchView';
 import { CodexDiffView } from './CodexDiffView';
 import { AskUserQuestionView } from './AskUserQuestionView';
+import { AgentViewFull } from './AgentViewFull';
 import { GeminiEditView } from './GeminiEditView';
 import { GeminiExecuteView } from './GeminiExecuteView';
 
@@ -52,6 +53,7 @@ export const toolFullViewRegistry: Record<string, ToolViewComponent> = {
     Edit: EditViewFull,
     MultiEdit: MultiEditViewFull,
     AskUserQuestion: AskUserQuestionView,
+    Agent: AgentViewFull,
 };
 
 // Helper function to get the appropriate view component for a tool
@@ -77,5 +79,6 @@ export { ExitPlanToolView } from './ExitPlanToolView';
 export { MultiEditView } from './MultiEditView';
 export { TaskView } from './TaskView';
 export { AskUserQuestionView } from './AskUserQuestionView';
+export { AgentViewFull } from './AgentViewFull';
 export { GeminiEditView } from './GeminiEditView';
 export { GeminiExecuteView } from './GeminiExecuteView';
