@@ -525,6 +525,7 @@ export const en: TranslationStructure = {
             viewDiff: 'Current file changes',
             question: 'Question',
             subagent: 'Subagent',
+            skill: 'Skill',
         },
         askUserQuestion: {
             submit: 'Submit Answer',

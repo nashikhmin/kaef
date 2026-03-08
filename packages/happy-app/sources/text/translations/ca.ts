@@ -507,6 +507,8 @@ export const ca: TranslationStructure = {
             applyChanges: 'Actualitza fitxer',
             viewDiff: 'Canvis del fitxer actual',
             question: 'Pregunta',
+            subagent: 'Subagent',
+            skill: 'Skill',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `Terminal(cmd: ${cmd})`,

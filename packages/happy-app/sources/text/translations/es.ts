@@ -507,6 +507,8 @@ export const es: TranslationStructure = {
             applyChanges: 'Actualizar archivo',
             viewDiff: 'Cambios del archivo actual',
             question: 'Pregunta',
+            subagent: 'Subagent',
+            skill: 'Skill',
         },
         desc: {
             terminalCmd: ({ cmd }: { cmd: string }) => `Terminal(cmd: ${cmd})`,

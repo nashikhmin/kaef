@@ -960,6 +960,25 @@ export const knownTools = {
             return null;
         }
     },
+    'Skill': {
+        title: (opts: { metadata: Metadata | null, tool: ToolCall }) => {
+            const skill = opts.tool.input?.skill;
+            if (typeof skill === 'string' && skill.trim()) {
+                return `/${skill}`;
+            }
+            return t('tools.names.skill');
+        },
+        icon: ICON_TASK,
+        minimal: true,
+        extractSubtitle: (opts: { tool: ToolCall }) => {
+            const args = opts.tool.input?.args;
+            return typeof args === 'string' && args.trim() ? args : undefined;
+        },
+        input: z.object({
+            skill: z.string().optional(),
+            args: z.string().optional(),
+        }).partial().passthrough()
+    },
     // Internal Claude Code tool for loading deferred tools - no user-visible output
     'ToolSearch': {
         icon: ICON_SEARCH,
