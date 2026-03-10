@@ -49,10 +49,8 @@ if (Platform.OS === 'android') {
     });
 }
 
-export {
-    // Catch any errors thrown by the Layout component.
-    ErrorBoundary,
-} from 'expo-router';
+// Custom error boundary that shows full stack trace with copy button
+export { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Configure splash screen
 SplashScreen.setOptions({
