@@ -53,8 +53,7 @@ export class CodexMcpClient {
     private client: Client;
     private transport: StdioClientTransport | null = null;
     private connected: boolean = false;
-    private sessionId: string | null = null;
-    private conversationId: string | null = null;
+    private threadId: string | null = null;
     private handler: ((event: any) => void) | null = null;
     private permissionHandler: CodexPermissionHandler | null = null;
     private sandboxConfig?: SandboxConfig;
@@ -265,17 +264,11 @@ export class CodexMcpClient {
     async continueSession(prompt: string, options?: { signal?: AbortSignal }): Promise<CodexToolResponse> {
         if (!this.connected) await this.connect();
 
-        if (!this.sessionId) {
+        if (!this.threadId) {
             throw new Error('No active session. Call startSession first.');
         }
 
-        if (!this.conversationId) {
-            // Some Codex deployments reuse the session ID as the conversation identifier
-            this.conversationId = this.sessionId;
-            logger.debug('[CodexMCP] conversationId missing, defaulting to sessionId:', this.conversationId);
-        }
-
-        const args = { sessionId: this.sessionId, conversationId: this.conversationId, prompt };
+        const args = { threadId: this.threadId, prompt };
         logger.debug('[CodexMCP] Continuing Codex session:', args);
 
         const response = await this.client.callTool({
@@ -304,74 +297,65 @@ export class CodexMcpClient {
         }
 
         for (const candidate of candidates) {
-            const sessionId = candidate.session_id ?? candidate.sessionId;
-            if (sessionId) {
-                this.sessionId = sessionId;
-                logger.debug('[CodexMCP] Session ID extracted from event:', this.sessionId);
-            }
-
-            const conversationId = candidate.conversation_id ?? candidate.conversationId;
-            if (conversationId) {
-                this.conversationId = conversationId;
-                logger.debug('[CodexMCP] Conversation ID extracted from event:', this.conversationId);
+            // Prefer threadId (new), fall back to session_id/sessionId (legacy)
+            const threadId = candidate.threadId ?? candidate.thread_id ?? candidate.session_id ?? candidate.sessionId;
+            if (threadId) {
+                this.threadId = threadId;
+                logger.debug('[CodexMCP] Thread ID extracted from event:', this.threadId);
             }
         }
     }
+
     private extractIdentifiers(response: any): void {
         const meta = response?.meta || {};
-        if (meta.sessionId) {
-            this.sessionId = meta.sessionId;
-            logger.debug('[CodexMCP] Session ID extracted:', this.sessionId);
-        } else if (response?.sessionId) {
-            this.sessionId = response.sessionId;
-            logger.debug('[CodexMCP] Session ID extracted:', this.sessionId);
-        }
 
-        if (meta.conversationId) {
-            this.conversationId = meta.conversationId;
-            logger.debug('[CodexMCP] Conversation ID extracted:', this.conversationId);
-        } else if (response?.conversationId) {
-            this.conversationId = response.conversationId;
-            logger.debug('[CodexMCP] Conversation ID extracted:', this.conversationId);
+        // Prefer threadId (new), fall back to sessionId (legacy)
+        const metaThreadId = meta.threadId ?? meta.sessionId;
+        if (metaThreadId) {
+            this.threadId = metaThreadId;
+            logger.debug('[CodexMCP] Thread ID extracted:', this.threadId);
+        } else {
+            const responseThreadId = response?.threadId ?? response?.sessionId;
+            if (responseThreadId) {
+                this.threadId = responseThreadId;
+                logger.debug('[CodexMCP] Thread ID extracted:', this.threadId);
+            }
         }
 
         const content = response?.content;
         if (Array.isArray(content)) {
             for (const item of content) {
-                if (!this.sessionId && item?.sessionId) {
-                    this.sessionId = item.sessionId;
-                    logger.debug('[CodexMCP] Session ID extracted from content:', this.sessionId);
-                }
-                if (!this.conversationId && item && typeof item === 'object' && 'conversationId' in item && item.conversationId) {
-                    this.conversationId = item.conversationId;
-                    logger.debug('[CodexMCP] Conversation ID extracted from content:', this.conversationId);
+                if (!this.threadId) {
+                    const itemThreadId = item?.threadId ?? item?.sessionId;
+                    if (itemThreadId) {
+                        this.threadId = itemThreadId;
+                        logger.debug('[CodexMCP] Thread ID extracted from content:', this.threadId);
+                    }
                 }
             }
         }
     }
 
     getSessionId(): string | null {
-        return this.sessionId;
+        return this.threadId;
     }
 
     hasActiveSession(): boolean {
-        return this.sessionId !== null;
+        return this.threadId !== null;
     }
 
     clearSession(): void {
-        // Store the previous session ID before clearing for potential resume
-        const previousSessionId = this.sessionId;
-        this.sessionId = null;
-        this.conversationId = null;
-        logger.debug('[CodexMCP] Session cleared, previous sessionId:', previousSessionId);
+        const previousThreadId = this.threadId;
+        this.threadId = null;
+        logger.debug('[CodexMCP] Session cleared, previous threadId:', previousThreadId);
     }
 
     /**
-     * Store the current session ID without clearing it, useful for abort handling
+     * Store the current thread ID without clearing it, useful for abort handling
      */
     storeSessionForResume(): string | null {
-        logger.debug('[CodexMCP] Storing session for potential resume:', this.sessionId);
-        return this.sessionId;
+        logger.debug('[CodexMCP] Storing session for potential resume:', this.threadId);
+        return this.threadId;
     }
 
     /**
@@ -431,7 +415,7 @@ export class CodexMcpClient {
             }
         }
         this.sandboxEnabled = false;
-        // Preserve session/conversation identifiers for potential reconnection / recovery flows.
-        logger.debug(`[CodexMCP] Disconnected; session ${this.sessionId ?? 'none'} preserved`);
+        // Preserve thread identifier for potential reconnection / recovery flows.
+        logger.debug(`[CodexMCP] Disconnected; threadId ${this.threadId ?? 'none'} preserved`);
     }
 }
