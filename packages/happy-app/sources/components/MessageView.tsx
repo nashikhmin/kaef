@@ -1,5 +1,5 @@
 import * as React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { StyleSheet } from 'react-native-unistyles';
 import { MarkdownView } from "./markdown/MarkdownView";
 import { t } from '@/text';
@@ -11,14 +11,11 @@ import { AgentEvent } from "@/sync/typesRaw";
 import { sync } from '@/sync/sync';
 import { Option } from './markdown/MarkdownView';
 import { useSetting } from "@/sync/storage";
-import { hapticsLight } from './haptics';
 
 export const MessageView = (props: {
   message: Message;
   metadata: Metadata | null;
   sessionId: string;
-  isSelected?: boolean;
-  onLongPress?: (messageId: string, text: string) => void;
   getMessageById?: (id: string) => Message | null;
 }) => {
   return (
@@ -28,8 +25,6 @@ export const MessageView = (props: {
           message={props.message}
           metadata={props.metadata}
           sessionId={props.sessionId}
-          isSelected={props.isSelected}
-          onLongPress={props.onLongPress}
           getMessageById={props.getMessageById}
         />
       </View>
@@ -37,37 +32,19 @@ export const MessageView = (props: {
   );
 };
 
-// Extract copyable text from a message
-function getMessageText(message: Message): string | null {
-  switch (message.kind) {
-    case 'user-text':
-      return message.displayText || message.text;
-    case 'agent-text':
-      return message.text;
-    case 'tool-call':
-      return null; // Tool calls don't have simple text to copy
-    case 'agent-event':
-      return null;
-    default:
-      return null;
-  }
-}
-
 // RenderBlock function that dispatches to the correct component based on message kind
 function RenderBlock(props: {
   message: Message;
   metadata: Metadata | null;
   sessionId: string;
-  isSelected?: boolean;
-  onLongPress?: (messageId: string, text: string) => void;
   getMessageById?: (id: string) => Message | null;
 }): React.ReactElement {
   switch (props.message.kind) {
     case 'user-text':
-      return <UserTextBlock message={props.message} sessionId={props.sessionId} isSelected={props.isSelected} onLongPress={props.onLongPress} />;
+      return <UserTextBlock message={props.message} sessionId={props.sessionId} />;
 
     case 'agent-text':
-      return <AgentTextBlock message={props.message} sessionId={props.sessionId} isSelected={props.isSelected} onLongPress={props.onLongPress} />;
+      return <AgentTextBlock message={props.message} sessionId={props.sessionId} />;
 
     case 'tool-call':
       return <ToolCallBlock
@@ -91,28 +68,19 @@ function RenderBlock(props: {
 function UserTextBlock(props: {
   message: UserTextMessage;
   sessionId: string;
-  isSelected?: boolean;
-  onLongPress?: (messageId: string, text: string) => void;
 }) {
   const handleOptionPress = React.useCallback((option: Option) => {
     sync.sendMessage(props.sessionId, option.title);
   }, [props.sessionId]);
 
-  const handleLongPress = React.useCallback(() => {
-    const text = getMessageText(props.message);
-    if (text && props.onLongPress) {
-      hapticsLight();
-      props.onLongPress(props.message.id, text);
-    }
-  }, [props.message, props.onLongPress]);
-
   return (
     <View style={styles.userMessageContainer}>
-      <Pressable onLongPress={handleLongPress} delayLongPress={300}>
-        <View style={[styles.userMessageBubble, props.isSelected && styles.selectedMessage]}>
-          <MarkdownView markdown={props.message.displayText || props.message.text} onOptionPress={handleOptionPress} />
-        </View>
-      </Pressable>
+      <View style={styles.userMessageBubble}>
+        <MarkdownView markdown={props.message.displayText || props.message.text} onOptionPress={handleOptionPress} />
+        {/* {__DEV__ && (
+          <Text style={styles.debugText}>{JSON.stringify(props.message.meta)}</Text>
+        )} */}
+      </View>
     </View>
   );
 }
@@ -120,8 +88,6 @@ function UserTextBlock(props: {
 function AgentTextBlock(props: {
   message: AgentTextMessage;
   sessionId: string;
-  isSelected?: boolean;
-  onLongPress?: (messageId: string, text: string) => void;
 }) {
   const experiments = useSetting('experiments');
   const handleOptionPress = React.useCallback((option: Option) => {
@@ -133,20 +99,10 @@ function AgentTextBlock(props: {
     return null;
   }
 
-  const handleLongPress = React.useCallback(() => {
-    const text = getMessageText(props.message);
-    if (text && props.onLongPress) {
-      hapticsLight();
-      props.onLongPress(props.message.id, text);
-    }
-  }, [props.message, props.onLongPress]);
-
   return (
-    <Pressable onLongPress={handleLongPress} delayLongPress={300}>
-      <View style={[styles.agentMessageContainer, props.message.isThinking && { opacity: 0.3 }, props.isSelected && styles.selectedMessage]}>
-        <MarkdownView markdown={props.message.text} onOptionPress={handleOptionPress} />
-      </View>
-    </Pressable>
+    <View style={[styles.agentMessageContainer, props.message.isThinking && { opacity: 0.3 }]}>
+      <MarkdownView markdown={props.message.text} onOptionPress={handleOptionPress} />
+    </View>
   );
 }
 
@@ -258,9 +214,6 @@ const styles = StyleSheet.create((theme) => ({
   },
   toolContainer: {
     marginHorizontal: 8,
-  },
-  selectedMessage: {
-    backgroundColor: theme.colors.surfacePressedOverlay,
   },
   debugText: {
     color: theme.colors.agentEventText,

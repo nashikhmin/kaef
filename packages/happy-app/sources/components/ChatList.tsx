@@ -18,7 +18,6 @@ import { Message } from '@/sync/typesMessage';
 import { StyleSheet } from 'react-native-unistyles';
 import { shouldShowScrollToBottom } from './chatScrollToBottom';
 import { ChatScrollToBottomButton } from './ChatScrollToBottomButton';
-import { MessageSelectionBar } from './MessageSelectionBar';
 
 const stylesheet = StyleSheet.create(() => ({
     listContainer: {
@@ -64,20 +63,6 @@ const ChatListInternal = React.memo((props: {
     const [viewportHeight, setViewportHeight] = React.useState(0);
     const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
 
-    // Message selection state
-    const [selectedMessageId, setSelectedMessageId] = React.useState<string | null>(null);
-    const [selectedMessageText, setSelectedMessageText] = React.useState<string>('');
-
-    const handleMessageLongPress = useCallback((messageId: string, text: string) => {
-        setSelectedMessageId(messageId);
-        setSelectedMessageText(text);
-    }, []);
-
-    const handleSelectionClose = useCallback(() => {
-        setSelectedMessageId(null);
-        setSelectedMessageText('');
-    }, []);
-
     const updateScrollToBottomVisibility = useCallback((distanceToBottom: number, scrollableDistance: number, viewport: number) => {
         setShowScrollToBottom((prev) => {
             return shouldShowScrollToBottom({
@@ -119,13 +104,7 @@ const ChatListInternal = React.memo((props: {
         const scrollableDistance = Math.max(contentSize.height - layoutMeasurement.height, 0);
         metricsRef.current = { distanceToBottom, scrollableDistance };
         updateScrollToBottomVisibility(distanceToBottom, scrollableDistance, nextViewport);
-
-        // Dismiss selection on scroll
-        if (selectedMessageId) {
-            setSelectedMessageId(null);
-            setSelectedMessageText('');
-        }
-    }, [viewportHeight, updateScrollToBottomVisibility, selectedMessageId]);
+    }, [viewportHeight, updateScrollToBottomVisibility]);
 
     const handleScrollToBottomPress = useCallback(() => {
         listRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -133,14 +112,8 @@ const ChatListInternal = React.memo((props: {
 
     const keyExtractor = useCallback((item: Message) => item.id, []);
     const renderItem = useCallback(({ item }: { item: Message }) => (
-        <MessageView
-            message={item}
-            metadata={props.metadata}
-            sessionId={props.sessionId}
-            isSelected={item.id === selectedMessageId}
-            onLongPress={handleMessageLongPress}
-        />
-    ), [props.metadata, props.sessionId, selectedMessageId, handleMessageLongPress]);
+        <MessageView message={item} metadata={props.metadata} sessionId={props.sessionId} />
+    ), [props.metadata, props.sessionId]);
 
     return (
         <View style={styles.listContainer} onLayout={handleLayout}>
@@ -164,12 +137,6 @@ const ChatListInternal = React.memo((props: {
             />
             {showScrollToBottom && (
                 <ChatScrollToBottomButton onPress={handleScrollToBottomPress} />
-            )}
-            {selectedMessageId && (
-                <MessageSelectionBar
-                    text={selectedMessageText}
-                    onClose={handleSelectionClose}
-                />
             )}
         </View>
     )
